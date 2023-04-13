@@ -6,8 +6,7 @@ type ListProps = { data: any[] };
 
 const CarList = ({ data }: ListProps) => {
   return (
-    <SafeAreaView style={styles.container}>
-      <FlatList
+    <FlatList style={styles.container}
         data={data}
         renderItem={({item}) => <CarListItem  
             name={item.car} 
@@ -18,24 +17,17 @@ const CarList = ({ data }: ListProps) => {
             price={item.price}
         />}
         keyExtractor={item => item.id}
-      />
-    </SafeAreaView>
+    />
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    display: 'flex',
+    flexDirection: 'row',
     flex: 1,
-    marginTop: StatusBar.currentHeight || 0,
-  },
-  item: {
-    backgroundColor: '#f9c2ff',
-    padding: 20,
-    marginVertical: 8,
-    marginHorizontal: 16,
-  },
-  title: {
-    fontSize: 32,
+    // alignItems: 'flex-start',
+    // marginTop: StatusBar.currentHeight || 0,
   },
 });
 
