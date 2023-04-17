@@ -41,19 +41,51 @@ export const Request = async (apiObj: IApiObj) => {
     }
 }
 
-export const Request_PICS = async (num: number, size = '/200/300') => {
+const GET_CARS: IApiObj = {
+    path: '/cars',
+    filter: (data) => data.cars
+}
+const GET_CARS_DETAIL: IApiObj = {
+    path: '/cars/{ID}',
+}
+
+function updateData (index: number, url: string) {
+    if (!CACHE_DATA.length || index >= CACHE_DATA.length) return;
+    CACHE_DATA[index].url = url;
+}
+
+export let CACHE_DATA: any[] = [];
+export let CACHE_URLS: string[] = [];
+
+function getRandomInt(min: number, max: number) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min) + min);
+}
+
+export const Request_PICS = async (index: number) => {
     try {
-        const response = await fetch('https://picsum.photos/seed/picsum' + size);
-        return await response.json();
+        const response = await fetch(`https://picsum.photos/seed/${index}/300.webp`);
+        CACHE_URLS.push(response.url);
     } catch(e) {
         console.error(e);
     }
 }
 
-export const GET_CARS: IApiObj = {
-    path: '/cars',
-    filter: (data) => data.cars
-}
-export const GET_CARS_DETAIL: IApiObj = {
-    path: '/cars/{ID}',
+export const getListData = (start = 0, end = 50) => {
+    console.log(start, end);
+    if (CACHE_DATA.length) {
+        for (let i = start; i < end; i++) {
+            updateData(i, CACHE_URLS[getRandomInt(0, CACHE_URLS.length)]);
+        }
+        return Promise.resolve(CACHE_DATA.slice(start, end));
+    }
+    const pics = Array(50).fill(0).map((_, i) => Request_PICS(i))
+    return Promise.all([Request(GET_CARS), ...pics]).then(([cars, ...e]) => {
+        CACHE_DATA = cars;
+        for (let i = start; i < end; i++) {
+            updateData(i, CACHE_URLS[getRandomInt(0, CACHE_URLS.length)]);
+        }
+        return cars.slice(start, end);
+    });
 }
