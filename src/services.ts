@@ -49,13 +49,14 @@ const GET_CARS_DETAIL: IApiObj = {
     path: '/cars/{ID}',
 }
 
-function updateData (index: number, url: string) {
-    if (!CACHE_DATA.length || index >= CACHE_DATA.length) return;
-    CACHE_DATA[index].url = url;
+function updateData (index: number, url: string, data = CACHE_DATA) {
+    if (!data.length || index >= data.length || data[index].url) return;
+    data[index].url = url;
 }
 
 export let CACHE_DATA: any[] = [];
 export let CACHE_URLS: string[] = [];
+const FILTER_WORDS: any[][] = [];
 
 function getRandomInt(min: number, max: number) {
     min = Math.ceil(min);
@@ -72,20 +73,69 @@ export const Request_PICS = async (index: number) => {
     }
 }
 
+const updateAndFilterData = (start = 0, end = 50) => {
+    const keys = Object.keys(FILTER_WORDS);
+    let originList = CACHE_DATA;
+    if (keys.length !== 0) {
+        originList = CACHE_DATA.filter((item) => {
+            for (let field of keys) {
+                if (Array.from(FILTER_WORDS[field]).some((v) => v == item[field])) {
+                    return true;
+                };
+            }
+            return false;
+        })
+    }
+    for (let i = start; i < end; i++) {
+        updateData(i, CACHE_URLS[getRandomInt(0, CACHE_URLS.length)], originList);
+    }
+    return Promise.resolve(originList.slice(start, end));
+}
+
 export const getListData = (start = 0, end = 50) => {
     console.log(start, end);
-    if (CACHE_DATA.length) {
-        for (let i = start; i < end; i++) {
-            updateData(i, CACHE_URLS[getRandomInt(0, CACHE_URLS.length)]);
-        }
-        return Promise.resolve(CACHE_DATA.slice(start, end));
-    }
+    if (CACHE_DATA.length) return updateAndFilterData(start, end);
     const pics = Array(50).fill(0).map((_, i) => Request_PICS(i))
     return Promise.all([Request(GET_CARS), ...pics]).then(([cars, ...e]) => {
         CACHE_DATA = cars;
-        for (let i = start; i < end; i++) {
-            updateData(i, CACHE_URLS[getRandomInt(0, CACHE_URLS.length)]);
-        }
-        return cars.slice(start, end);
+        return updateAndFilterData(start, end);
     });
+}
+
+export const getFilterData = (name: string) => {
+    let list: any[] = [];
+    if (name === 'year') {
+        list = CACHE_DATA.map((item) => item.car_model_year);
+    }
+    if (name === 'brand') {
+        list = CACHE_DATA.map((item) => item.car_model);
+    }
+    if (name === 'color') {
+        list = CACHE_DATA.map((item) => item.car_color);
+    }
+    list = Array.from(new Set(list));
+    const newList = [];
+    for (let i = 0; i < list.length; i+=3) {
+        newList.push([list[i]]);
+        newList[newList.length - 1].push(list[i+1]);
+        newList[newList.length - 1].push(list[i+2]);
+    }
+    return newList;
+}
+
+export const setFilterWord = (name: string, value: string, type: 'add' | 'remove') => {
+    let field = '';
+    if (name === 'year') {
+        field = 'car_model_year';
+    }
+    if (name === 'brand') {
+        field = 'car_model';
+    }
+    if (name === 'color') {
+        field = 'color';
+    }
+    if (!FILTER_WORDS[field]) FILTER_WORDS[field] = new Set();
+    if(type === 'add') FILTER_WORDS[field].add(value);
+    else FILTER_WORDS[field].remove(value);
+    console.log(FILTER_WORDS)
 }
